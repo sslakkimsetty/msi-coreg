@@ -1,8 +1,4 @@
-library("Cardinal")
 library("EBImage")
-library("sloop")
-
-dpath <- c("")
 
 dpath1 <- "/Users/sai/Documents/00-NEU/2-Ind-Study/data"
 dpath2 <- "colorectal-adenocarcinoma"
