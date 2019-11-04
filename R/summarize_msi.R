@@ -1,28 +1,7 @@
 library("Cardinal")
 library("EBImage")
 
-dpath1 <- "/Users/sai/Documents/00-NEU/2-Ind-Study/data"
-dpath2 <- "S042"
-dpath3 <- ""
-dpath <- file.path(dpath1, dpath2, dpath3)
-
-msifname <- "S042-processed.imzML"
-
-# Read MSI data
-msi2 <- readMSIData(file.path(dpath, msifname))
-plot(msi2, pixel=1)
-
-msi <- process(normalize(msi, method="tic"))
-msi <- process(smoothSignal(msi, method="gaussian"))
-msi <- process(reduceBaseline(msi, method="median", blocks=9))
-msi <- process(peakPick(msi, method="adaptive", SNR=3))
-
-msi2 <- preprocess_moving(msi2)
-all(iData(msi) >= 0)
-
-
-
-# HR2MSI DATASET
+# HR2MSI dataset
 dpath1 <- "/Users/sai/Documents/00-NEU/2-Ind-Study/data"
 dpath2 <- "HR2MSI-mouse-unary-bladder"
 dpath3 <- ""
@@ -31,11 +10,11 @@ dpath <- file.path(dpath1, dpath2, dpath3)
 msifname <- "HR2MSI mouse urinary bladder S096.imzML"
 hr2msi <- readMSIData(file.path(dpath, msifname))
 
-optfame <- "HR2MSI mouse urinary bladder S096 - optical image.tiff"
+optfname <- "HR2MSI mouse urinary bladder S096 - optical image.tiff"
 hr2opt <- readImage(file.path(dpath, optfname))
 
-opt <- preprocess_fixed(hr2opt)
-msi <- preprocess_moving(hr2msi)
+opt <- preprocess_fixed(hr2opt) # processed optical image
+msi <- preprocess_moving(hr2msi) # processed msi image
 
 # Run spatial shrunken centroids and spatial DGMM to find optimal m/z
 RNGkind("L'Ecuyer-CMRG")
@@ -61,12 +40,6 @@ image(msi, mz=633)
 ssc3 <- spatialShrunkenCentroids(msi[tissue], r=1, k=3,
     s=c(6,9), method="gaussian", BPPARAM=MulticoreParam())
 image(ssc3, model=list(s=9), values="probability", key=FALSE)
-
-# Run spatial DGMM with top m/z values (DGMM fails!!!)
-a <- features(msi, mz=c(559.06, 633))
-dgmm <- spatialDGMM(msi[tissue][a, ], r=1, k=3, method="adaptive", init="kmeans",
-    iter.max=1000, tol=1e-11)
-
 
 
 .validate_summarize_input <- function(moving, r, k, s) {
@@ -136,24 +109,65 @@ summarize_moving_ssc <- function(moving, r=c(1,2),
 
 out <- summarize_moving_ssc(msi, r=c(1), k=c(3,4), s=c(0,3,6,9))
 
-a <- out[[2]]
 
-a <- as.vector(t(a))
+# Build composite from ssc images
+fac <- b@resultData@listData[[1]]$class
+dims(msi)
 
-image(msi, mz=a[1:40], superpose=TRUE, key=FALSE)
+fac <- as.numeric(levels(fac))[fac]
+fac <- matrix(fac, nrow=260)
 
-image(out[[1]][[1]], values="probability")
+fac_img <- Image(fac)
+fac_img <- preprocess_fixed(fac_img)
+display(fac_img, "raster")
 
-b <- out[[1]][[1]]
-str(b)
 
-head(as.integer(b@resultData@listData[[1]]$class))
-str(b@resultData@listData[[1]]$class)
+fac_l <- lapply(out[[1]], function(x) x@resultData@listData[[1]]$class)
+fac_l <- lapply(fac_l, function(x) as.numeric(levels(x))[x])
 
-b@resultData@listData[[1]]$class <- b@resultData@listData[[1]]$class + 1
+build_image <- function(fac, nrow) {
+    fac <- matrix(fac, nrow=nrow)
+    fac_img <- Image(fac)
+    fac_img <- preprocess_fixed(fac_img)
+    fac_img
+}
 
-lev <- levels(b@resultData@listData[[1]]$class)
+fac_img_l <- lapply(fac_l, function(x) build_image(x, nrow=260))
 
-levels(b@resultData@listData[[1]]$class) <- c(lev, "d")
+sum <- fac_img_l[[1]]
 
-b@resultData@listData[[1]]$class[[1]] <- "d"
+for (i in c(2, 3, 4, 6, 7, 8)) {
+    sum <- sum + fac_img_l[[i]]
+}
+
+fac_avg <- sum / length(fac_img_l)
+display(fac_avg, "raster")
+
+
+# Build composite from top mz values
+top_mz = as.vector(out[[2]])
+image(msi, mz=top_mz, superpose=TRUE, key=FALSE)
+
+# Build composite image from multiple mz values
+composite_img_mz <- function(msi, top_mz) {
+    N <- length(top_mz)
+
+    img_l <- lapply(top_mz,
+        function(x) as.vector(image(msi, mz=x)[[1]][[1]][[1]][[3]]))
+    img_l <- lapply(img_l, function(x) build_image(x, nrow=260))
+
+    composite <- img_l[[1]]
+    for (i in 2:N) {
+        composite <- composite + img_l[[i]]
+    }
+
+    composite <- preprocess_fixed(composite)
+}
+
+x <- composite_img_mz(msi, top_mz)
+.x <- thresh(x, w=5, h=5, offset=0.0001)
+str(x)
+display(.x, "raster")
+
+.fac_avg <- thresh(fac_avg, w=1, h=1, offset=0.02)
+display((.fac_avg + 3*fac_avg)/4, "raster")
