@@ -17,36 +17,50 @@ set.seed(2020)
 
 msi <- simulateImage(preset=1, npeaks=50, nruns=1, baseline=2)
 
+.validate_moving_input <- function(moving) {
+    valid_classes <- c("MSContinuousImagingExperiment",
+        "MSProcessedImagingExperiment")
+
+    if ( !any(class(moving) %in% valid_classes) ) {
+        stop(cat("Class of object should be either of ", valid_classes),
+            call. = FALSE)
+    }
+
+    moving
+}
+
 
 preprocess_moving <- function(moving,
     process=c("normalize", "smooth", "baseline", "pick", "align", "filter"),
     seed=210) {
 
+    moving <- .validate_moving_input(moving)
+
     if ("normalize" %in% process) {
-        print("Normalizing...")
+        message("Normalizing...")
         moving <- normalize(moving, method="tic")
     }
 
     if ("smooth" %in% process) {
-        print("Smoothing...")
+        message("Smoothing...")
         moving <- smoothSignal(moving, method="gaussian", window=9)
     }
 
     if ("baseline" %in% process) {
-        print("Correcting baseline...")
+        message("Correcting baseline...")
         moving <- reduceBaseline(moving, method="median", blocks=50)
     }
 
     if ("pick" %in% process) {
-        print("Peak picking...")
-        moving <- peakPick(moving, method="adaptive", SNR=3)
+        message("Peak picking...")
+        moving <- peakPick(moving, method="adaptive", SNR=2)
     }
 
     if ("align" %in% process) {
         if ( !("pick" %in% process) ) {
             stop("Peak picking should also be included!", call.=FALSE)
         }
-        print("Peak aligning...")
+        message("Peak aligning...")
         moving <- peakAlign(moving, method="diff")
     }
 
@@ -55,7 +69,7 @@ preprocess_moving <- function(moving,
             stop("Peak pick or align missing and should be included!",
                 call.=FALSE)
         }
-        print("Peak filtering...")
+        message("Peak filtering...")
         # moving <- peakFilter(moving, freq.min=0.2)
     }
 
