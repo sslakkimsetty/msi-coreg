@@ -109,18 +109,11 @@ summarize_moving_ssc <- function(moving, r=c(1,2),
 
 out <- summarize_moving_ssc(msi, r=c(1), k=c(3,4), s=c(0,3,6,9))
 
+# BUILD COMPOSITE IMAGES FROM MULTIPLE SSC RESULTS AND TOP MZ VALUES
+composite <- NULL
 
 # Build composite from ssc images
-fac <- b@resultData@listData[[1]]$class
-dims(msi)
-
-fac <- as.numeric(levels(fac))[fac]
-fac <- matrix(fac, nrow=260)
-
-fac_img <- Image(fac)
-fac_img <- preprocess_fixed(fac_img)
-display(fac_img, "raster")
-
+img_cnt <- length(out[[1]])
 
 fac_l <- lapply(out[[1]], function(x) x@resultData@listData[[1]]$class)
 fac_l <- lapply(fac_l, function(x) as.numeric(levels(x))[x])
@@ -132,16 +125,17 @@ build_image <- function(fac, nrow) {
     fac_img
 }
 
-fac_img_l <- lapply(fac_l, function(x) build_image(x, nrow=260))
+comp_img_sscl <- lapply(fac_l, function(x) build_image(x, nrow=260))
+comp_img_ssc <- comp_img_sscl[[1]]
 
-sum <- fac_img_l[[1]]
-
-for (i in c(2, 3, 4, 6, 7, 8)) {
-    sum <- sum + fac_img_l[[i]]
+for (i in 2:img_cnt) {
+    comp_img_ssc <- comp_img_ssc + comp_img_sscl[[i]]
 }
 
-fac_avg <- sum / length(fac_img_l)
-display(fac_avg, "raster")
+comp_img_ssc <- comp_img_ssc / length(comp_img_sscl) # composite of ssc results
+composite <- list(comp_img_ssc)
+
+display(comp_img_ssc, "raster")
 
 
 # Build composite from top mz values
@@ -156,18 +150,26 @@ composite_img_mz <- function(msi, top_mz) {
         function(x) as.vector(image(msi, mz=x)[[1]][[1]][[1]][[3]]))
     img_l <- lapply(img_l, function(x) build_image(x, nrow=260))
 
-    composite <- img_l[[1]]
+    comp_img <- img_l[[1]]
     for (i in 2:N) {
-        composite <- composite + img_l[[i]]
+        comp_img <- comp_img + img_l[[i]]
     }
 
-    composite <- preprocess_fixed(composite)
+    comp_img <- preprocess_fixed(comp_img)
 }
 
-x <- composite_img_mz(msi, top_mz)
-.x <- thresh(x, w=5, h=5, offset=0.0001)
-str(x)
-display(.x, "raster")
+comp_img_mz <- composite_img_mz(msi, top_mz)
+composite <- c(composite, list(comp_img_mz))
 
-.fac_avg <- thresh(fac_avg, w=1, h=1, offset=0.02)
-display((.fac_avg + 3*fac_avg)/4, "raster")
+
+# IMAGE THRESHOLDING
+comp_img_mz <- thresh(comp_img_mz, w=5, h=5, offset=0.0001)
+display(comp_img_mz, "raster")
+
+.comp_img_ssc <- thresh(comp_img_ssc, w=1, h=1, offset=0.02)
+display((.comp_img_ssc + 3*comp_img_ssc)/4, "raster")
+
+ratio <- 0.25
+msi_summarized <- (ratio*.comp_img_ssc + (1-ratio)*comp_img_ssc)
+display(msi_summarized, "raster")
+
