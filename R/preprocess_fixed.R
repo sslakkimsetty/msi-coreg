@@ -78,7 +78,13 @@ preprocess_fixed <- function(fixed,
 
     fixed <- .validate_fixed_input(fixed, scale_to, crop_lim)
     channels <- fixed@colormode + 1 # !!! check this
+
     dims <- dim(fixed)[1:2]
+
+    # if (channels == 1) # !!! fix this
+    #     fixed <- as.array(fixed, dim = c(dims, 1))
+    #     fixed <- Image(fixed)
+    # }
 
     scale_type <- match.arg(scale_type, c("pixels", "ratio"))
 
@@ -93,6 +99,7 @@ preprocess_fixed <- function(fixed,
         }
 
         crop_lim <- c(crop_lim[1:2]/dims[1], crop_lim[3:4]/dims[2])
+        print(crop_lim)
     }
 
     # Subset image
@@ -100,7 +107,12 @@ preprocess_fixed <- function(fixed,
     w2 <- ceiling(crop_lim[2] * dims[1])
     h1 <- floor(crop_lim[3] * dims[2])
     h2 <- ceiling(crop_lim[4] * dims[2])
-    fixed <- fixed[w1:w2, h1:h2, ]
+
+    if (channels == 1) {
+        fixed <- fixed[w1:w2, h1:h2]
+    } else {
+        fixed <- fixed[w1:w2, h1:h2, ]
+    }
 
 
     # Scale image
