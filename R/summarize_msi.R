@@ -173,3 +173,5 @@ ratio <- 0.25
 msi_summarized <- (ratio*.comp_img_ssc + (1-ratio)*comp_img_ssc)
 display(msi_summarized, "raster")
 
+# Temporary working variables
+moving <- msi_summarized

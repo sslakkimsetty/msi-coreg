@@ -158,3 +158,6 @@ optp <- preprocess_fixed(opt, c(1,1), "ratio")
 display(optp, "raster")
 
 optp <- preprocess_fixed(opt, c(1.5,1), "ratio", c(0,0.5,0,1))
+
+# temporary working variables
+fixed <- preprocess_fixed(opt, scale_to=dim(moving), scale_type="pixels")
