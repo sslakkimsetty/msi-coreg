@@ -14,16 +14,23 @@ display(opt, method="raster")
 optg <- channel(opt, "gray")
 
 
-.validate_fixed_input <- function(fixed, scale_to, crop_lim) {
-    cls <- class(fixed)
+.valid_img <- function(img) {
+    cls <- class(img)
 
     # Check class of fixed and package
     if ( !cls == "Image" | !attr(cls, "package") == "EBImage" ) {
         stop(
             "Image is not of 'Image' class of EBImage package",
-            call. = FALSE
-        )
-    }
+            call. = FALSE)}
+
+    img
+}
+
+
+.validate_fixed_input <- function(fixed, scale_to, crop_lim) {
+    cls <- class(fixed)
+
+    fixed <- .valid_img(fixed)
 
     # Check intensity limits
     int <- as.array(fixed)
