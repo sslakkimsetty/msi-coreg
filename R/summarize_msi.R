@@ -115,7 +115,7 @@ composite <- NULL
 # Build composite from ssc images
 img_cnt <- length(out[[1]])
 
-fac_l <- lapply(out[[1]], function(x) x@resultData@listData[[1]]$class)
+fac_l <- lapply(out[[1]], function(x) resultData(x, 1, "class"))
 fac_l <- lapply(fac_l, function(x) as.numeric(levels(x))[x])
 
 build_image <- function(fac, nrow) {
@@ -134,8 +134,6 @@ for (i in 2:img_cnt) {
 
 comp_img_ssc <- comp_img_ssc / length(comp_img_sscl) # composite of ssc results
 composite <- list(comp_img_ssc)
-
-display(comp_img_ssc, "raster")
 
 
 # Build composite from top mz values
@@ -175,3 +173,4 @@ display(msi_summarized, "raster")
 
 # Temporary working variables
 moving <- msi_summarized
+display(comp_img_mz, "raster")
