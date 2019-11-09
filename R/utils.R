@@ -26,3 +26,26 @@ overlay_images <- function(fixed, moving, alpha=0.25, new=FALSE) {
     }
     display((alpha*fixed + (1-alpha)*moving), method="raster")
 }
+
+
+
+interpolate <- function(img, coords=c(h=1,w=1), method="bilinear") {
+    h <- coords[[1]]
+    w <- coords[[2]]
+
+    h1 <- floor(h)
+    h2 <- ceiling(h)
+    w1 <- floor(w)
+    w2 <- ceiling(w)
+
+    int <- c()
+    v <- matrix(c(h1,w1, h1,w2, h2,w1, h2,w2), ncol=2, byrow=TRUE)
+    d <- apply(v, 1, function(x) {
+        int <<- c(int, img[x[1], x[2]])
+        dist(matrix(c(x, coords), ncol=2, byrow=TRUE), method="euclidean")
+    })
+
+    sum(int * d) / sum(d)
+}
+
+.k <- matrix(1:4, nrow=2, byrow=TRUE)
