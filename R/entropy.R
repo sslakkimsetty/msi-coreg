@@ -1,6 +1,6 @@
 
 
-estimate_gaussian <- function(samp_int) {
+g_params <- function(samp_int) {
     mu <- mean(samp_int)
     var <- var(samp_int)
 
@@ -9,7 +9,7 @@ estimate_gaussian <- function(samp_int) {
 
 
 g_density <- function(zi, zj, gaussian_params) {
-    sigma <- gaussian_params[[2]]
+    sigma <- g_params[[2]]
 
     Gphi <- (2*pi)^(-1/2) * sigma^(-1/2)
     Gphi <- Gphi * exp((-1/2) * (zi-zj) * (1/sigma) * (zi-zj))
