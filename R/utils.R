@@ -32,10 +32,10 @@ overlay_images <- function(fixed, moving, alpha=0.25, new=FALSE) {
 .validate_interpolate <- function(img, coords, method) {
     method <- match.arg(method, c("bilinear", "nearest_neighbor"))
 
-    img <- .valid_img(img)
+    # img <- .valid_img(img)
 
-    x <- dim(img)[2]
-    y <- dim(img)[1]
+    x <- dim(img)[1]
+    y <- dim(img)[2]
 
     if (coords[1] <= 0 | coords[1] > x |
         coords[2] <= 0 | coords[2] > y) {
@@ -67,9 +67,19 @@ interpolate <- function(img, coords=c(h=1,w=1), method="bilinear") {
         int[which.min(d)]
 
     } else if (method == "bilinear") {
-        k1 <- (w2 - w) * int[1] + (w - w1) * int[2]
-        k2 <- (w2 - w) * int[3] + (w - w1) * int[4]
-        k <- (h2 - h) * k1 + (h - h1) * k2
+        if (w1 == w2) {
+            k1 <- int[1]
+            k2 <- int[2]
+        } else {
+            k1 <- (w2 - w) * int[1] + (w - w1) * int[2]
+            k2 <- (w2 - w) * int[3] + (w - w1) * int[4]
+        }
+
+        if (h1 == h2) {
+            k <- k1
+        } else {
+            k <- (h2 - h) * k1 + (h - h1) * k2
+        }
         k
     }
 
