@@ -20,7 +20,7 @@ sim_grid <- function(dims, grid_lines=10, plot=FALSE) {
         out[x, ] <<- rep(1, ncol(out))
     })
 
-    out <- EBImage::Image(t(out), dim=dims, colormode="gray")
+    out <- EBImage::Image(t(out), dim = dims, colormode = "gray")
 
     if (plot) {
         quartz()
@@ -34,13 +34,15 @@ out <- sim_grid(c(10, 10), 5, FALSE)
 display(out, method="raster", interpolate=FALSE)
 
 
-sim_transform <- function(img, A, t) {
+sim_affine <- function(img, Q) {
     w <- dim(img)[1]
     h <- dim(img)[2]
 
     img <- t(img@.Data)
 
     Ainv <- MASS::ginv(A)
+
+    t <- matrix(c(t[2], t[1]), nrow=2)
     trial <- matrix(c(1,1, 1,w, h,1, h,w), nrow=4, byrow=TRUE)
 
     y <- c()
@@ -52,9 +54,9 @@ sim_transform <- function(img, A, t) {
     y <- matrix(y, ncol=2, byrow=TRUE)
 
     xmin <- min(1, floor(min(y[, 1])))
-    xmax <- max(w, ceiling(max(y[, 1])))
+    xmax <- max(h, ceiling(max(y[, 1])))
     ymin <- min(1, floor(min(y[, 2])))
-    ymax <- max(h, ceiling(max(y[, 2])))
+    ymax <- max(w, ceiling(max(y[, 2])))
 
     out <- sapply(xmin:xmax, function(x, ...) {
         sapply(ymin:ymax, function(y, ...) {
@@ -64,27 +66,37 @@ sim_transform <- function(img, A, t) {
             t <- ...[[4]]
 
             .x <- A %*% matrix(c(x,y), nrow=2) + t
+            # .x <- round(.x)
 
-            if (.x[1] <=0 | .x[1] > h | .x[2] <= 0 | .x[2] > w) {
+            if (.x[1] < 1 | .x[1] > h | .x[2] < 1 | .x[2] > w) {
                 # c(0, 0)
                 0
             } else {
                 # .x
-                img[.x[1], .x[2]]
+                k <- interpolate(img, coords=.x, method="bilinear")
+                k
+                # img[.x[1], .x[2]]
             }
 
         }, c(list(x), ...))
     }, list(img, A, t))
 
-    out <- as.Image(t(out))
+    out <- as.Image(out)
     out
 }
 
 
-out <- sim_grid(c(100, 100), 5, FALSE)
-t <- matrix(c(0, 0), nrow=2)
-A <- matrix(c(1.3, 0.2, 0.2, 0.7), nrow=2, byrow=TRUE)
-tout <- sim_transform(out, A, t)
-
+out <- sim_grid(c(500, 100), 10, FALSE)
+t <- matrix(c(10, 0), nrow=2)
+A <- matrix(c(1, 0.2, 0, 1), nrow=2, byrow=TRUE)
+A <- matrix(c(1, 0, 0, 1), nrow=2, byrow=TRUE)
 display(out, "raster")
+# out <- opt
+
+tout <- sim_transform(out, A, t)
 display(tout, "raster")
+
+m <- matrix(c(1, -.5, 0, 0, 1, 0), nrow=3, ncol=2)
+sim_transform(img, m[1:2, ], matrix(m[3, ], nrow=2))
+affine(img, m)
+display(.Last.value, "raster")
